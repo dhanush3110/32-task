@@ -1,0 +1,111 @@
+//Find all the topics and tasks that were taught in the month of October:
+
+db.topics.aggregate([
+  {
+    $lookup: {
+      from: "tasks",
+      localField: "topic_id",
+      foreignField: "topic_id",
+      as: "tasks"
+    }
+  },
+  {
+    $match: {
+      "tasks.submission_date": {
+        $gte: ISODate("2020-10-01"),
+        $lt: ISODate("2020-11-01")
+      }
+    }
+  }
+])
+
+//Find all the company drives that appeared between October 15, 2020, and October 31, 2020:
+
+db.company_drives.find({
+  drive_date: {
+    $gte: ISODate("2020-10-15"),
+    $lte: ISODate("2020-10-31")
+  }
+})
+
+
+//Find all the company drives and students who appeared for the placement:
+
+db.company_drives.aggregate([
+  {
+    $lookup: {
+      from: "attendance",
+      localField: "drive_date",
+      foreignField: "date",
+      as: "attendance"
+    }
+  },
+  {
+    $lookup: {
+      from: "users",
+      localField: "attendance.user_id",
+      foreignField: "user_id",
+      as: "students"
+    }
+  },
+  {
+    $project: {
+      drive_name: 1,
+      students: "$students.name"
+    }
+  }
+])
+
+
+//Find the number of problems solved by a user in codekata:
+
+db.codekata.aggregate([
+  {
+    $match: {
+      user_id: "<user_id>"
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      total_problems_solved: { $sum: "$problem_solved" }
+    }
+  }
+])
+
+
+//Find all the mentors who have a mentee count greater than 15:
+
+db.mentors.find({
+  mentee_count: { $gt: 15 }
+})
+
+
+//Find the number of users who are absent and their task is not submitted between October 15, 2020, and October 31, 2020:
+
+db.attendance.aggregate([
+  {
+    $lookup: {
+      from: "tasks",
+      localField: "user_id",
+      foreignField: "user_id",
+      as: "tasks"
+    }
+  },
+  {
+    $match: {
+      status: "absent",
+      $or: [
+        { "tasks.submission_date": { $lt: ISODate("2020-10-15") } },
+        { "tasks.submission_date": { $gt: ISODate("2020-10-31") } },
+        { "tasks.submission_date": null }
+      ]
+    }
+  },
+  {
+    $count: "absent_users"
+  }
+])
+
+
+//
